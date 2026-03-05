@@ -1,0 +1,78 @@
+services:
+  # ── MySQL Database ─────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.3
+    container_name: nfc-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    # Port 3306 intentionally NOT exposed externally — backend connects via internal Docker network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ── Spring Boot Backend ────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./BACKEND-END
+      dockerfile: Dockerfile
+    container_name: nfc-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${DB_NAME}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: ${JWT_SECRET}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+
+  # ── Patient Portal (React → Nginx) ─────────────────────────────────────────
+  patient-portal:
+    build:
+      context: ./FRONTEND/frontend
+      dockerfile: Dockerfile
+    container_name: nfc-patient-portal
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${PATIENT_PORTAL_PORT:-3000}:80"
+
+  # ── Hospital Portal (React → Nginx) ────────────────────────────────────────
+  hospital-portal:
+    build:
+      context: ./FRONTEND/hospital-portal
+      dockerfile: Dockerfile
+    container_name: nfc-hospital-portal
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${HOSPITAL_PORTAL_PORT:-3001}:80"
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  default:
+    name: nfc-network

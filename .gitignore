@@ -1,0 +1,30 @@
+# NFC MedScan — root gitignore
+
+# ── Java / Maven ───────────────────────────────────────────
+BACKEND-END/target/
+BACKEND-END/*.log
+*.class
+*.jar
+
+# ── Node / npm ─────────────────────────────────────────────
+FRONTEND/frontend/node_modules/
+FRONTEND/frontend/dist/
+FRONTEND/hospital-portal/node_modules/
+FRONTEND/hospital-portal/dist/
+
+# ── Secrets (NEVER commit) ─────────────────────────────────
+.env
+*.env.local
+
+# ── IDE ────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.iml
+
+# ── Logs ───────────────────────────────────────────────
+*.log
+boot-log.txt
+
+# ── OS ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
