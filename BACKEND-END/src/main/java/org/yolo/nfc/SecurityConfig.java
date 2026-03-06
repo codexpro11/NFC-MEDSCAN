@@ -37,7 +37,7 @@ public class SecurityConfig {
 
     // Configurable via CORS_ALLOWED_ORIGINS env var (comma-separated)
     // Defaults to localhost origins for local development
-    @Value("${cors.allowed-origins:http://localhost:8080,http://localhost:5173,http://localhost:5174,http://localhost:3000,http://localhost:3001}")
+    @Value("${cors.allowed-origins:http://localhost:8080,http://localhost:5173,http://localhost:5174,http://localhost:3000,http://localhost:3001,https://nfc-medscan.vercel.app}")
     private String allowedOriginsRaw;
 
     @Bean
