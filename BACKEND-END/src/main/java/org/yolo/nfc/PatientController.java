@@ -17,7 +17,7 @@ import java.util.HashMap;
 @RestController
 @RequestMapping("/api/patients")
 @RequiredArgsConstructor
-// NOTE: No @CrossOrigin here — global CORS is configured in SecurityConfig
+// NOTE: No @CrossOrigin here - global CORS is configured in SecurityConfig
 public class PatientController {
 
     private final PatientService patientService;
@@ -72,11 +72,22 @@ public class PatientController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Staff-only: creating patient records is a hospital staff action
+    // Staff can create any patient record.
+    // PATIENT can create only their own record, and only for their linked NFC ID.
     @PostMapping
-    @PreAuthorize("hasAnyRole('DOCTOR', 'NURSE', 'ADMIN', 'RECEPTIONIST')")
-    public ResponseEntity<Patient> createPatient(@RequestBody Patient patient) {
+    @PreAuthorize("hasAnyRole('DOCTOR', 'NURSE', 'ADMIN', 'RECEPTIONIST', 'PATIENT')")
+    public ResponseEntity<Patient> createPatient(@RequestBody Patient patient,
+            Authentication authentication) {
         try {
+            AppUser currentUser = appUserRepository.findByEmail(authentication.getName()).orElse(null);
+            if (currentUser != null && currentUser.getRole() == AppUser.Role.PATIENT) {
+                String linkedNfcId = currentUser.getLinkedNfcId();
+                if (linkedNfcId == null || linkedNfcId.isBlank()
+                        || patient.getNfcId() == null
+                        || !linkedNfcId.equalsIgnoreCase(patient.getNfcId().trim())) {
+                    return ResponseEntity.status(403).build();
+                }
+            }
             Patient createdPatient = patientService.createPatient(patient);
             return ResponseEntity.ok(createdPatient);
         } catch (RuntimeException e) {
