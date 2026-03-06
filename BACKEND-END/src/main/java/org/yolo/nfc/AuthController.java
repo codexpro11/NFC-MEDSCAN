@@ -3,6 +3,7 @@ package org.yolo.nfc;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.yolo.nfc.Service.AuthService;
@@ -16,29 +17,28 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        try {
-            return ResponseEntity.ok(authService.register(request));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        // RuntimeExceptions (duplicate email, invalid role) propagate to
+        // GlobalExceptionHandler which returns a proper JSON error body.
+        return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
+        // Previously the catch block swallowed ALL exceptions and returned an empty
+        // body (.build()) — the frontend had no way to show a meaningful error.
+        // Now only BadCredentialsException is caught and re-thrown as RuntimeException
+        // so GlobalExceptionHandler can return a proper JSON 400 body.
         try {
             return ResponseEntity.ok(authService.login(request));
-        } catch (Exception e) {
-            return ResponseEntity.status(401).build();
+        } catch (BadCredentialsException e) {
+            throw new RuntimeException("Invalid email or password");
         }
     }
 
     @PostMapping("/google")
     public ResponseEntity<AuthResponse> googleLogin(@RequestBody GoogleAuthRequest request) {
-        try {
-            return ResponseEntity.ok(authService.googleLogin(request.getCredential()));
-        } catch (Exception e) {
-            return ResponseEntity.status(401).build();
-        }
+        // Let GlobalExceptionHandler handle token verification failures
+        return ResponseEntity.ok(authService.googleLogin(request.getCredential()));
     }
 
     @GetMapping("/me")

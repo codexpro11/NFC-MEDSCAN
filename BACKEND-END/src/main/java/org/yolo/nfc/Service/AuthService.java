@@ -38,7 +38,17 @@ public class AuthService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setRole(AppUser.Role.valueOf(request.getRole().toUpperCase()));
+
+        // FIX: Validate role before calling valueOf() — an invalid role previously
+        // caused an uncaught IllegalArgumentException (raw 500 error).
+        AppUser.Role role;
+        try {
+            role = AppUser.Role.valueOf(request.getRole().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid role: '" + request.getRole() +
+                    "'. Must be one of: PATIENT, DOCTOR, NURSE, RECEPTIONIST, ADMIN");
+        }
+        user.setRole(role);
         user.setLinkedNfcId(request.getLinkedNfcId());
         user.setAuthProvider(AppUser.AuthProvider.LOCAL);
 
@@ -60,11 +70,20 @@ public class AuthService {
     }
 
     public AuthResponse login(AuthRequest request) {
+        // FIX: Pre-fetch user to check authProvider BEFORE hitting BCrypt.
+        // Previously, Google-only users (passwordHash = null) caused BCrypt to crash
+        // with "Invalid salt version" (500 error) instead of a clean 401.
+        AppUser user = appUserRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+
+        if (user.getAuthProvider() == AppUser.AuthProvider.GOOGLE) {
+            throw new RuntimeException(
+                    "This account was created with Google Sign-In. " +
+                    "Please use the 'Sign in with Google' button.");
+        }
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
-
-        AppUser user = appUserRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
 
         String token = jwtUtil.generateToken(user);
 
@@ -86,7 +105,6 @@ public class AuthService {
         String name = (String) payload.get("name");
         String googleId = payload.getSubject();
 
-        // Find existing user or create a new one
         AppUser user = appUserRepository.findByEmail(email).orElseGet(() -> {
             AppUser newUser = new AppUser();
             newUser.setEmail(email);
@@ -94,12 +112,10 @@ public class AuthService {
             newUser.setRole(AppUser.Role.PATIENT);
             newUser.setAuthProvider(AppUser.AuthProvider.GOOGLE);
             newUser.setGoogleId(googleId);
-            // No password for Google users
             newUser.setPasswordHash(null);
             return appUserRepository.save(newUser);
         });
 
-        // If existing user signed up with LOCAL, link their Google account
         if (user.getGoogleId() == null) {
             user.setGoogleId(googleId);
             user.setAuthProvider(AppUser.AuthProvider.GOOGLE);
