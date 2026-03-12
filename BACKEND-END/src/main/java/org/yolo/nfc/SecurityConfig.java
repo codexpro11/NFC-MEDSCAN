@@ -68,7 +68,9 @@ public class SecurityConfig {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toList();
-        config.setAllowedOrigins(origins);
+        // Use allowedOriginPatterns instead of allowedOrigins to support
+        // wildcard patterns (e.g. https://*-codexpro11s-projects.vercel.app)
+        config.setAllowedOriginPatterns(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
