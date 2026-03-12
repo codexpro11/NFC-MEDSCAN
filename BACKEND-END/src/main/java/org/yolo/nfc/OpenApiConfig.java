@@ -25,7 +25,7 @@ public class OpenApiConfig {
         localServer.setDescription("Local Environment");
 
         Server prodServer = new Server();
-        prodServer.setUrl("https://nfc-medscan-production.up.railway.app");
+        prodServer.setUrl("https://nfc-medscan.onrender.com");
         prodServer.setDescription("Production Environment");
 
         // ✅ Fix 2: JWT security scheme — adds the 🔒 Authorize button to Swagger UI.
