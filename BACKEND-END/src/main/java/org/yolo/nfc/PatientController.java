@@ -42,9 +42,21 @@ public class PatientController {
                         return ResponseEntity.status(403).<Patient>build();
                     }
 
-                    // Log access if staff is authenticated
+                    // FIX: Only log access when HOSPITAL STAFF scans the card.
+                    // Previously, every authenticated user (including the patient themselves)
+                    // triggered an NFC_SCAN log — causing the patient's own Dashboard and
+                    // MedicalProfile page loads to appear as "Unknown Hospital" access events.
                     if (authentication != null) {
-                        accessLogService.logAccess(patient, authentication, AccessLog.Action.NFC_SCAN);
+                        AppUser currentUser = appUserRepository
+                                .findByEmail(authentication.getName()).orElse(null);
+
+                        boolean isPatientViewingOwnRecord = currentUser != null
+                                && currentUser.getRole() == AppUser.Role.PATIENT
+                                && nfcId.equals(currentUser.getLinkedNfcId());
+
+                        if (!isPatientViewingOwnRecord) {
+                            accessLogService.logAccess(patient, authentication, AccessLog.Action.NFC_SCAN);
+                        }
                     }
 
                     return ResponseEntity.ok(patient);

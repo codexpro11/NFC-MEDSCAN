@@ -16,6 +16,21 @@ const actionIcons = {
     NOTES_VIEW: '📝',
 }
 
+/**
+ * FIX: Server stores LocalDateTime in UTC without a timezone suffix.
+ * JSON arrives as "2026-03-13T04:38:35.123" (no Z).
+ * Without the Z, some browsers treat this as LOCAL time instead of UTC,
+ * showing the wrong hour. Appending 'Z' forces correct UTC → local conversion.
+ */
+function formatDate(dateStr) {
+    if (!dateStr) return ''
+    const utc = dateStr.endsWith('Z') ? dateStr : dateStr + 'Z'
+    return new Date(utc).toLocaleString(undefined, {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true
+    })
+}
+
 export default function AccessLogs() {
     const { user } = useAuth()
     const nfcId = user?.linkedNfcId
@@ -30,6 +45,11 @@ export default function AccessLogs() {
             .catch(() => setFetchError('Could not load access logs. Please try again later.'))
             .finally(() => setLoading(false))
     }, [nfcId])
+
+    // FIX: Filter out self-access entries (no hospital = patient loaded their own data).
+    // These were being created by Dashboard & MedicalProfile page loads before the
+    // backend fix. Existing historical entries are hidden here for a clean UX.
+    const hospitalLogs = logs.filter(log => log.hospital != null)
 
     if (loading) return (
         <div className="layout"><Sidebar />
@@ -51,24 +71,36 @@ export default function AccessLogs() {
                 {fetchError && <div className="alert alert-error">⚠️ {fetchError}</div>}
 
                 {!nfcId ? (
-                    <div className="empty"><div className="empty-icon">💳</div><h3>No NFC Card Linked</h3><p>Link your card in Settings to track access.</p></div>
-                ) : logs.length === 0 ? (
-                    <div className="empty"><div className="empty-icon">🔒</div><h3>No Access Events</h3><p>Your profile has not been accessed by any hospital yet.</p></div>
+                    <div className="empty">
+                        <div className="empty-icon">💳</div>
+                        <h3>No NFC Card Linked</h3>
+                        <p>Link your card in Settings to track access.</p>
+                    </div>
+                ) : hospitalLogs.length === 0 ? (
+                    <div className="empty">
+                        <div className="empty-icon">🔒</div>
+                        <h3>No Hospital Access Events</h3>
+                        <p>Your profile has not been accessed by any hospital staff yet.</p>
+                    </div>
                 ) : (
                     <div className="card">
                         <div className="card-header">
                             <span className="card-title">🔍 Access History</span>
-                            <span className="pill pill-blue">{logs.length} events</span>
+                            <span className="pill pill-blue">{hospitalLogs.length} events</span>
                         </div>
-                        {logs.map((log, i) => (
+                        {hospitalLogs.map((log, i) => (
                             <div key={i} className="list-item">
                                 <div className="list-avatar">{actionIcons[log.action] || '🏥'}</div>
                                 <div className="list-info">
                                     <div className="list-title">
-                                        {log.hospital?.name ?? 'Unknown Hospital'}
-                                        {log.staff && <span style={{ color: 'var(--muted)', fontWeight: 400 }}> — {log.staff.name}</span>}
+                                        {log.hospital?.name ?? 'Hospital'}
+                                        {log.staff && (
+                                            <span style={{ color: 'var(--muted)', fontWeight: 400 }}>
+                                                {' '}— {log.staff.name}
+                                            </span>
+                                        )}
                                     </div>
-                                    <div className="list-subtitle">{new Date(log.accessedAt).toLocaleString()}</div>
+                                    <div className="list-subtitle">{formatDate(log.accessedAt)}</div>
                                 </div>
                                 <span className={`pill ${actionColors[log.action] || 'pill-blue'}`}>
                                     {log.action?.replace('_', ' ')}

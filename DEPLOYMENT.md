@@ -1,69 +1,70 @@
-# 🚀 NFC MedScan — Deployment Guide (Railway + Vercel)
+# 🚀 NFC MedScan — Deployment Guide (Render + Vercel)
 
-Deploy your full-stack NFC MedScan project using **Railway** (backend) + **Vercel** (frontends).
+Deploy your full-stack NFC MedScan project using **Render** (backend) + **Vercel** (frontends).
 
 ---
 
 ## Architecture Overview
 
 ```
-Railway                        Vercel (Project 1)         Vercel (Project 2)
+Render                         Vercel (Project 1)         Vercel (Project 2)
 ─────────────────              ──────────────────         ──────────────────
 Spring Boot Backend      ←──  Patient Portal             Hospital Portal
-https://nfc-medscan-           FRONTEND/frontend/         FRONTEND/hospital-portal/
-production.up.railway.app
+https://nfc-medscan            FRONTEND/frontend/         FRONTEND/hospital-portal/
+  .onrender.com
 ```
 
 ---
 
-## Step 1: Deploy Backend on Railway
+## Step 1: Deploy Backend on Render
 
 ### 1a. Push code to GitHub
 Make sure your project is pushed to GitHub.
 
-### 1b. Create Railway service
-1. Go to [railway.app](https://railway.app) → **New Project**
-2. **Deploy from GitHub repo** → Select your repo
+### 1b. Create Render Web Service
+1. Go to [dashboard.render.com](https://dashboard.render.com) → **New** → **Web Service**
+2. Connect your GitHub repo
 3. Set **Root Directory** → `BACKEND-END`
-4. Railway auto-detects the `Dockerfile` and builds it
+4. Render auto-detects the `Dockerfile` and builds it
 
-### 1c. Add MySQL database
-1. In your Railway project → **+ New** → **Database** → **MySQL**
-2. Railway auto-injects `MYSQL_URL`, copy the connection details
+### 1c. Add PostgreSQL database
+1. In your Render dashboard → **New** → **PostgreSQL**
+2. Copy the **Internal Database URL** for use in env vars
 
-### 1d. Set Environment Variables on Railway
+### 1d. Set Environment Variables on Render
 
-Go to your backend service → **Variables** tab → Add:
+Go to your backend service → **Environment** tab → Add:
 
 | Variable | Value |
 |---|---|
-| `SPRING_DATASOURCE_URL` | `jdbc:mysql://YOUR_RAILWAY_MYSQL_HOST:PORT/railway?createDatabaseIfNotExist=true` |
-| `SPRING_DATASOURCE_USERNAME` | `root` (from Railway MySQL) |
-| `SPRING_DATASOURCE_PASSWORD` | (from Railway MySQL) |
+| `SPRING_PROFILES_ACTIVE` | `prod` |
+| `SPRING_DATASOURCE_URL` | Internal DB URL from Render PostgreSQL |
+| `SPRING_DATASOURCE_USERNAME` | (from Render PostgreSQL) |
+| `SPRING_DATASOURCE_PASSWORD` | (from Render PostgreSQL) |
 | `JWT_SECRET` | Run: `openssl rand -hex 64` and paste result |
-| `GOOGLE_CLIENT_ID` | `1043021546443-8885535838085495587.apps.googleusercontent.com` |
-| `CORS_ALLOWED_ORIGINS` | `https://YOUR-PATIENT-PORTAL.vercel.app,https://YOUR-HOSPITAL-PORTAL.vercel.app` |
+| `GOOGLE_CLIENT_ID` | `63948650748-1olrtlc2d8q20q4j021oat40lu6tvin6.apps.googleusercontent.com` |
+| `CORS_ALLOWED_ORIGINS` | `https://nfc-medscan-eight.vercel.app,https://nfc-hospital-portal.vercel.app` |
 
 > ⚠️ Fill in CORS_ALLOWED_ORIGINS AFTER you deploy both Vercel apps (Step 3 & 4).
 
 ### 1e. Get your backend URL
-After deploy, Railway gives you: `https://nfc-medscan-production.up.railway.app`
-Test: `https://nfc-medscan-production.up.railway.app/swagger-ui.html`
+After deploy, Render gives you: `https://nfc-medscan.onrender.com`
+Test: `https://nfc-medscan.onrender.com/actuator/health`
 
 ---
 
 ## Step 2: Verify Frontend .env Files
 
-Both frontend `.env.production` files are already configured to point to Railway:
+Both frontend `.env.production` files point to Render:
 
 ```
 # FRONTEND/frontend/.env.production
-VITE_API_URL=https://nfc-medscan-production.up.railway.app/api
-VITE_GOOGLE_CLIENT_ID=1043021546443-8885535838085495587.apps.googleusercontent.com
+VITE_API_URL=https://nfc-medscan.onrender.com/api
+VITE_GOOGLE_CLIENT_ID=63948650748-1olrtlc2d8q20q4j021oat40lu6tvin6.apps.googleusercontent.com
 
 # FRONTEND/hospital-portal/.env.production
-VITE_API_URL=https://nfc-medscan-production.up.railway.app/api
-VITE_GOOGLE_CLIENT_ID=1043021546443-8885535838085495587.apps.googleusercontent.com
+VITE_API_URL=https://nfc-medscan.onrender.com/api
+VITE_GOOGLE_CLIENT_ID=63948650748-1olrtlc2d8q20q4j021oat40lu6tvin6.apps.googleusercontent.com
 ```
 
 > ✅ These are already set correctly — no changes needed.
@@ -83,10 +84,10 @@ VITE_GOOGLE_CLIENT_ID=1043021546443-8885535838085495587.apps.googleusercontent.c
 
 | Variable | Value |
 |---|---|
-| `VITE_API_URL` | `https://nfc-medscan-production.up.railway.app/api` |
-| `VITE_GOOGLE_CLIENT_ID` | `1043021546443-8885535838085495587.apps.googleusercontent.com` |
+| `VITE_API_URL` | `https://nfc-medscan.onrender.com/api` |
+| `VITE_GOOGLE_CLIENT_ID` | `63948650748-1olrtlc2d8q20q4j021oat40lu6tvin6.apps.googleusercontent.com` |
 
-5. Deploy → Note your URL: `https://YOUR-PATIENT-PORTAL.vercel.app`
+5. Deploy → URL: `https://nfc-medscan-eight.vercel.app`
 
 ---
 
@@ -102,23 +103,23 @@ VITE_GOOGLE_CLIENT_ID=1043021546443-8885535838085495587.apps.googleusercontent.c
 
 | Variable | Value |
 |---|---|
-| `VITE_API_URL` | `https://nfc-medscan-production.up.railway.app/api` |
-| `VITE_GOOGLE_CLIENT_ID` | `1043021546443-8885535838085495587.apps.googleusercontent.com` |
+| `VITE_API_URL` | `https://nfc-medscan.onrender.com/api` |
+| `VITE_GOOGLE_CLIENT_ID` | `63948650748-1olrtlc2d8q20q4j021oat40lu6tvin6.apps.googleusercontent.com` |
 
-4. Deploy → Note your URL: `https://YOUR-HOSPITAL-PORTAL.vercel.app`
+4. Deploy → URL: `https://nfc-hospital-portal.vercel.app`
 
 ---
 
-## Step 5: Update CORS on Railway ⚠️ CRITICAL
+## Step 5: Update CORS on Render ⚠️ CRITICAL
 
-After both Vercel deploys, go back to **Railway** → your backend service → **Variables**:
+After both Vercel deploys, go back to **Render** → your backend service → **Environment**:
 
 Update `CORS_ALLOWED_ORIGINS`:
 ```
-CORS_ALLOWED_ORIGINS=https://YOUR-PATIENT-PORTAL.vercel.app,https://YOUR-HOSPITAL-PORTAL.vercel.app
+CORS_ALLOWED_ORIGINS=https://nfc-medscan-eight.vercel.app,https://nfc-hospital-portal.vercel.app
 ```
 
-Railway will auto-redeploy. This allows the browser to call your backend without CORS errors.
+Render will auto-redeploy. This allows the browser to call your backend without CORS errors.
 
 ---
 
@@ -126,7 +127,7 @@ Railway will auto-redeploy. This allows the browser to call your backend without
 
 1. **Patient Portal** → Register → Login → Fill medical profile → Link NFC card
 2. **Hospital Portal** → Staff login → Scan NFC ID → View patient → AI suggestions
-3. **Swagger UI** → `https://nfc-medscan-production.up.railway.app/swagger-ui.html`
+3. **Health Check** → `https://nfc-medscan.onrender.com/actuator/health`
 
 ---
 
@@ -134,10 +135,10 @@ Railway will auto-redeploy. This allows the browser to call your backend without
 
 | Service | URL |
 |---|---|
-| Backend API | `https://nfc-medscan-production.up.railway.app` |
-| Swagger UI | `https://nfc-medscan-production.up.railway.app/swagger-ui.html` |
-| Patient Portal | `https://YOUR-PATIENT-PORTAL.vercel.app` |
-| Hospital Portal | `https://YOUR-HOSPITAL-PORTAL.vercel.app` |
+| Backend API | `https://nfc-medscan.onrender.com` |
+| Health Check | `https://nfc-medscan.onrender.com/actuator/health` |
+| Patient Portal | `https://nfc-medscan-eight.vercel.app` |
+| Hospital Portal | `https://nfc-hospital-portal.vercel.app` |
 
 ---
 
@@ -145,9 +146,10 @@ Railway will auto-redeploy. This allows the browser to call your backend without
 
 | Issue | Fix |
 |---|---|
-| CORS error in browser | Update `CORS_ALLOWED_ORIGINS` on Railway — must match Vercel URLs exactly, no trailing slash |
+| CORS error in browser | Update `CORS_ALLOWED_ORIGINS` on Render — must match Vercel URLs exactly, no trailing slash |
 | Blank page on Vercel | Check `VITE_API_URL` is set in Vercel env vars → Redeploy |
 | 404 on page refresh | `vercel.json` with rewrites is already in both frontend folders ✅ |
-| DB connection refused | Check Railway MySQL host/port in `SPRING_DATASOURCE_URL` |
-| Login fails / 403 | Ensure `JWT_SECRET` is set on Railway (min 64 chars) |
-| Google login fails | Ensure `GOOGLE_CLIENT_ID` matches in Railway + Vercel env vars |
+| DB connection refused | Check Render PostgreSQL Internal URL in `SPRING_DATASOURCE_URL` |
+| Login fails / 403 | Ensure `JWT_SECRET` is set on Render (min 64 chars) |
+| Google login fails | Ensure `GOOGLE_CLIENT_ID` matches in Render + Vercel env vars |
+| Render cold start slow | Free tier spins down after inactivity — first request takes ~30s |
