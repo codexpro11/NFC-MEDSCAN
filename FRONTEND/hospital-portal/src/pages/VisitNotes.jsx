@@ -46,8 +46,9 @@ export default function VisitNotes() {
             setForm({ notes: '', diagnosis: '', visitDate: new Date().toISOString().split('T')[0] })
             setSuccess(true)
             setTimeout(() => setSuccess(false), 3000)
-        } catch {
-            setError('Failed to save note. Make sure you have DOCTOR or NURSE role.')
+        } catch (err) {
+            const msg = err.response?.data?.error || err.response?.data?.message || 'Failed to save note. Please try again.'
+            setError(msg)
         } finally {
             setSaving(false)
         }

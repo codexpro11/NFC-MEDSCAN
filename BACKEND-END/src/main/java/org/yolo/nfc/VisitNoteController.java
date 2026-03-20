@@ -34,10 +34,19 @@ public class VisitNoteController {
             Authentication authentication) {
         Patient patient = patientRepository.findByNfcId(request.getNfcId())
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
-        Hospital hospital = hospitalRepository.findById(request.getHospitalId())
-                .orElseThrow(() -> new RuntimeException("Hospital not found"));
         AppUser doctor = appUserRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Use provided hospitalId, or fall back to the doctor's own hospital
+        Hospital hospital;
+        if (request.getHospitalId() != null) {
+            hospital = hospitalRepository.findById(request.getHospitalId())
+                    .orElseThrow(() -> new RuntimeException("Hospital not found"));
+        } else if (doctor.getHospital() != null) {
+            hospital = doctor.getHospital();
+        } else {
+            throw new RuntimeException("No hospital specified and your account has no hospital assigned. Contact admin.");
+        }
 
         VisitNote note = new VisitNote();
         note.setPatient(patient);

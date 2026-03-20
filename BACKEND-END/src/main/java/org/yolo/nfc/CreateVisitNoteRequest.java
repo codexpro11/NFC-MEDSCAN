@@ -1,7 +1,6 @@
 package org.yolo.nfc;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import java.time.LocalDate;
 
@@ -10,7 +9,7 @@ public class CreateVisitNoteRequest {
     @NotBlank(message = "Patient NFC ID is required")
     private String nfcId;
 
-    @NotNull(message = "Hospital ID is required")
+    // Optional: if not provided, the backend uses the doctor's own hospital
     private Long hospitalId;
 
     @NotBlank(message = "Notes cannot be empty")
